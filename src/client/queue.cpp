@@ -6,7 +6,7 @@
 #include "../../lib/client.h"
 #include "../../lib/macros.h"
 
-Queue::Queue(Message s) : sentinel(s) {
+Queue::Queue(/*Message s*/) /*: sentinel(s)*/ {
 	int rc;
 	Pthread_mutex_init(&lock, NULL);
 	Pthread_cond_init(&fill, NULL);
