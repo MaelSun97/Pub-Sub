@@ -1,6 +1,8 @@
 // macros.h
 
 #pragma once
+#include <string.h>
+
 
 #define PTHREAD_CHECK(f) \
     if ((rc = (f)) != 0) { \

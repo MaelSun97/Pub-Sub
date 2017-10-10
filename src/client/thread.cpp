@@ -8,8 +8,6 @@
 #include "../../lib/client.h"
 #include "../../lib/macros.h"
 
-Thread::Thread() {}
-
 void Thread::start(thread_func func, void *arg) {
 	int rc;
 	PTHREAD_CHECK(pthread_create(&thread, NULL, func, arg));

@@ -6,7 +6,7 @@
 #include "../../lib/client.h"
 #include "../../lib/macros.h"
 
-Queue::Queue(/*Message s*/) /*: sentinel(s)*/ {
+Queue::Queue(/*Message s*/)/* : sentinel(s)*/ {
 	int rc;
 	Pthread_mutex_init(&lock, NULL);
 	Pthread_cond_init(&fill, NULL);
@@ -32,13 +32,13 @@ Message Queue::pop() {
 		Pthread_cond_wait(&fill, &lock);
 	}
 
-	Queue value = data.front();
-	if (value != sentinel) {
+	Message value = data.front();
+	//if (value.type != sentinel) {
 		data.pop();
 		Pthread_cond_signal(&empty);
-	} else {
+	/*} else {
 		Pthread_cond_signal(&fill);
-	}
+	}*/
 	Pthread_cond_signal(&empty);
 	Pthread_mutex_unlock(&lock);
 	return value;

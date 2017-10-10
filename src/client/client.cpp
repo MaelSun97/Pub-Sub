@@ -178,7 +178,7 @@ void *thread_pub_func(void *args) {
 	return NULL;
 }
 
-void *thread_retr_func(void *) {
+void *thread_retr_func(void *args) {
 	Thread_func_args* a = (Thread_func_args*)args;
 	Queue *incoming = a->queue;
 	FILE *server_stream = a->stream;
@@ -204,7 +204,7 @@ void *thread_retr_func(void *) {
 	return NULL;
 }
 
-void *thread_call_func(void *) {
+void *thread_call_func(void *args) {
 	Thread_func_args* a = (Thread_func_args*)args;
 	Queue *incoming = a->queue;
 	std::map<const char*, Callback*>* map = a->map;
@@ -213,5 +213,3 @@ void *thread_call_func(void *) {
 		(*map)[m.type.c_str()]->run(m);
 	}
 }
-
-

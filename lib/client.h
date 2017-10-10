@@ -1,6 +1,7 @@
 #pragma once
 #include <string> 
 #include <map>
+#include <queue>
 
 using std::string;
 
@@ -40,7 +41,7 @@ class Queue {
 
 	private:
     	std::queue<Message> data;
-	    Message sentinel;
+	    string sentinel;
 		pthread_mutex_t lock;
 		pthread_cond_t fill;
 		pthread_cond_t empty;
@@ -75,8 +76,8 @@ class Client {
 };
 
 struct Thread_func_args {
-	Queue* queue,
-	const char* uid,
-	std::map<const char*, Callback*>* map,
-	FILE* stream,
+	Queue* queue;
+	const char* uid;
+	std::map<const char*, Callback*>* map;
+	FILE* stream;
 };
