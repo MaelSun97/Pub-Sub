@@ -5,8 +5,8 @@
 #include <string.h>
 #include <pthread.h>
 
-#include "../../lib/client.h"
-#include "../../lib/macros.h"
+#include "../../include/ps_client/client.h"
+#include "../../include/ps_client/macros.h"
 
 void Thread::start(thread_func func, void *arg) {
 	int rc;

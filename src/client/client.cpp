@@ -6,8 +6,8 @@
 #include <stdlib.h>
 #include <netdb.h>
 
-#include "../../lib/client.h"
-#include "../../lib/macros.h"
+#include "../../include/ps_client/client.h"
+#include "../../include/ps_client/macros.h"
 
 Client::Client(const char* host, const char* port, const char* cid) {
 	this->host = host;
@@ -161,17 +161,17 @@ void *thread_retr_func(void *args) {
 		fprintf(server_stream, "RETRIEVE %s\n", uid);
 		char buffer[BUFSIZ];
 		puts(buffer);
-		char* topic;
-		char* sender;
-		long unsigned int* length;
-		fscanf(server_stream, "MESSAGE %s FROM %s LENGTH %lu", topic, sender, length);
-		char body[*length];
-		fgets(body, *length, server_stream);
+		char topic[BUFSIZ];
+		char sender[BUFSIZ];
+		long unsigned int length;
+		fscanf(server_stream, "MESSAGE %s FROM %s LENGTH %lu", topic, sender, &length);
+		char body[length];
+		fgets(body, length, server_stream);
 		Message m;
 		m.type = "MESSAGE";
 		m.topic = topic;
 		m.sender = sender;
-		m.length = *length;
+		m.length = length;
 		m.body = body;
 		(*incoming).push(m);
 	}

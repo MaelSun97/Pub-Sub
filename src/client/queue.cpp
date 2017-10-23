@@ -3,8 +3,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "../../lib/client.h"
-#include "../../lib/macros.h"
+#include "../../include/ps_client/client.h"
+#include "../../include/ps_client/macros.h"
 
 Queue::Queue() {
 	int rc;
