@@ -19,5 +19,6 @@ void Thread::join(void **result) {
 }
 
 void Thread::detach() {
-	//TODO
+	int rc;
+	PTHREAD_CHECK(pthread_detach(thread));
 }

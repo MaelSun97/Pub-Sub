@@ -34,14 +34,12 @@ class Thread {
 
 class Queue {
 	public:
-		//Queue(Message);
 		Queue();
 		void push(const Message&);
 		Message pop();
 
 	private:
     	std::queue<Message> data;
-	    string sentinel;
 		pthread_mutex_t lock;
 		pthread_cond_t fill;
 		pthread_cond_t empty;
@@ -67,12 +65,14 @@ class Client {
 		const char* uid;
 		size_t nonce;
 		FILE* server_stream;
+		bool finished;
 		std::map<const char*, Callback*> callback_map;
 		Queue outgoing;
 		Queue incoming;
 		Thread thread_pub;
 		Thread thread_retr;
 		Thread thread_call;
+		pthread_mutex_t lock;
 };
 
 struct Thread_func_args {

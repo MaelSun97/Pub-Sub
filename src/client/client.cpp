@@ -15,6 +15,7 @@ Client::Client(const char* host, const char* port, const char* cid) {
 	this->uid = cid;
 	srand(time(NULL));
 	this->nonce = rand() % 1000 + 100;
+	this->finished = false;
 
 	/* Connect to server */
 	server_stream = socket_dial(host, port);
@@ -22,17 +23,12 @@ Client::Client(const char* host, const char* port, const char* cid) {
 		exit(1);
 	}
 
-	//start threads
+	/* Identify */
 	Message m;
 	m.type = "IDENTIFY";
 	m.sender = uid;
 	m.nonce = nonce;
 	outgoing.push(m);
-	/*
-	fprintf(server_stream, "IDENTIFY %s\n", topic);
-	char buffer[BUFSIZ];
-	fgets(buffer, BUFSIZ, server_stream);
-	puts(buffer);*/
 }
 
 FILE *Client::socket_dial(const char *host, const char *port) {
@@ -89,12 +85,6 @@ void Client::publish(const char* topic, const char* message, size_t length) {
 	m.length = length;
 	m.body = message;
 	outgoing.push(m);
-	/*
-	fprintf(server_stream, "PUBLISH %s %s\n", topic, length);
-	char buffer[BUFSIZ];
-	fgets(buffer, BUFSIZ, server_stream);
-	puts(buffer);
-	*/
 }
 
 void Client::subscribe(const char* topic, Callback *callback) {
@@ -104,12 +94,6 @@ void Client::subscribe(const char* topic, Callback *callback) {
 	m.sender = uid;
 	m.nonce = nonce;
 	outgoing.push(m);
-	/*
-	fprintf(server_stream, "SUBSCRIBE %s\n", topic);
-	char buffer[BUFSIZ];
-	fgets(buffer, BUFSIZ, server_stream);
-	puts(buffer);
-	*/
 	callback_map.insert(std::pair<const char*, Callback*>(topic ,callback));
 }
 
@@ -120,12 +104,6 @@ void Client::unsubscribe(const char* topic) {
 	m.sender = uid;
 	m.nonce = nonce;
 	outgoing.push(m);
-	/*
-	fprintf(server_stream, "UNSUBSCRIBE %s\n", topic);
-	char buffer[BUFSIZ];
-	fgets(buffer, BUFSIZ, server_stream);
-	puts(buffer);
-	*/
 }
 
 void Client::disconnect() {
@@ -134,12 +112,6 @@ void Client::disconnect() {
 	m.sender = uid;
 	m.nonce = nonce;
 	outgoing.push(m);
-	/*
-	fprintf(server_stream, "DISCONNECT %s\n", cid);
-	char buffer[BUFSIZ];
-	fgets(buffer, BUFSIZ, server_stream);
-	puts(buffer);
-	*/
 }
 
 void Client::run() {
@@ -148,27 +120,29 @@ void Client::run() {
 	args.uid = uid;
 	args.map = &callback_map;
 	args.stream = server_stream;
+
 	thread_pub.start(thread_pub_func, &args);
 	args.queue = &incoming;
 	thread_retr.start(thread_retr_func, &args);
 	thread_call.start(thread_call_func, &args);
-	/*
-	fprintf(server_stream, "RETRIEVE %s\n", uid);
-	char buffer[BUFSIZ];
-	fgets(buffer, BUFSIZ, server_stream);
-	*/
+
+	thread_pub.detach();
+	thread_retr.detach();
+	thread_call.detach();
 }
 
 bool Client::shutdown() {
-	//TODO: what is this function?
-	return true;
+	pthread_mutex_lock(&lock);
+	bool result = finished;
+	pthread_mutex_unlock(&lock);
+	return result;
 }
 
 void *thread_pub_func(void *args) {
 	Thread_func_args* a = (Thread_func_args*)args;
 	Queue *outgoing = a->queue;
 	FILE *server_stream = a->stream;
-	while (true) {
+	while (true /* should depend on client.shutdown() */) {
 		Message m = (*outgoing).pop();
 		fprintf(server_stream, "%s %s %lu\n", m.type.c_str(), m.topic.c_str(), m.length);
 		char buffer[BUFSIZ];
