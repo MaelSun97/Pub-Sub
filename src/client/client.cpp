@@ -115,16 +115,18 @@ void Client::disconnect() {
 }
 
 void Client::run() {
+	/*
 	Thread_func_args args;
 	args.queue = &outgoing;
 	args.uid = uid;
 	args.map = &callback_map;
 	args.stream = server_stream;
+	*/
 
-	thread_pub.start(thread_pub_func, &args);
-	args.queue = &incoming;
-	thread_retr.start(thread_retr_func, &args);
-	thread_call.start(thread_call_func, &args);
+	thread_pub.start(thread_pub_func, /*&args*/this);
+	//args.queue = &incoming;
+	thread_retr.start(thread_retr_func, /*&args*/this);
+	thread_call.start(thread_call_func, /*&args*/this);
 
 	thread_pub.detach();
 	thread_retr.detach();
@@ -139,51 +141,61 @@ bool Client::shutdown() {
 }
 
 void *thread_pub_func(void *args) {
-	Thread_func_args* a = (Thread_func_args*)args;
-	Queue *outgoing = a->queue;
-	FILE *server_stream = a->stream;
-	while (true /* should depend on client.shutdown() */) {
-		Message m = (*outgoing).pop();
-		fprintf(server_stream, "%s %s %lu\n", m.type.c_str(), m.topic.c_str(), m.length);
+	//Thread_func_args* a = (Thread_func_args*)args;
+	Client* client = (Client*)args;
+	//Queue *outgoing = a->queue;
+	//FILE *server_stream = a->stream;
+
+	while (!client->shutdown()) {
+		Message m = (client->outgoing).pop();
+		fprintf(client->server_stream, "%s %s %lu\n", m.type.c_str(), m.topic.c_str(), m.length);
 		char buffer[BUFSIZ];
-		fgets(buffer, BUFSIZ, server_stream);
+		fgets(buffer, BUFSIZ, client->server_stream);
 		puts(buffer);
 	}
 	return NULL;
 }
 
 void *thread_retr_func(void *args) {
+	/*
 	Thread_func_args* a = (Thread_func_args*)args;
 	Queue *incoming = a->queue;
 	FILE *server_stream = a->stream;
 	const char* uid = a->uid;
-	while (true) {
-		fprintf(server_stream, "RETRIEVE %s\n", uid);
+	*/
+	Client* client = (Client*)args;
+
+	while (!client->shutdown()) {
+		fprintf(client->server_stream, "RETRIEVE %s\n", client->uid);
 		char buffer[BUFSIZ];
 		puts(buffer);
 		char* topic;
 		char* sender;
 		long unsigned int* length;
-		fscanf(server_stream, "MESSAGE %s FROM %s LENGTH %lu", topic, sender, length);
+		fscanf(client->server_stream, "MESSAGE %s FROM %s LENGTH %lu", topic, sender, length);
 		char body[*length];
-		fgets(body, *length, server_stream);
+		fgets(body, *length, client->server_stream);
 		Message m;
 		m.type = "MESSAGE";
 		m.topic = topic;
 		m.sender = sender;
 		m.length = *length;
 		m.body = body;
-		(*incoming).push(m);
+		(client->incoming).push(m);
 	}
 	return NULL;
 }
 
 void *thread_call_func(void *args) {
+	/*
 	Thread_func_args* a = (Thread_func_args*)args;
 	Queue *incoming = a->queue;
 	std::map<const char*, Callback*>* map = a->map;
-	while (true) {
-		Message m = (*incoming).pop();
-		(*map)[m.type.c_str()]->run(m);
+	*/
+	Client* client = (Client*)args;
+	while (!client->shutdown()) {
+		Message m = (client->incoming).pop();
+		(client->callback_map)[m.type.c_str()]->run(m);
 	}
+	return NULL;
 }
