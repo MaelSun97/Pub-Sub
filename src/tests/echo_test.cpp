@@ -42,9 +42,9 @@ int main(int argc, char *argv[]) {
     const char *port      = argv[2];
     const char *client_id = argv[3];
 
-	std::cout << "Before client instantiation" << std::endl;
+	//std::cout << "Before client instantiation" << std::endl;
     Client       client(host, port, client_id);
-	std::cout << "After client instantiation" << std::endl;
+	//std::cout << "After client instantiation" << std::endl;
     Thread       generator;
     EchoCallback e;
 
@@ -52,9 +52,9 @@ int main(int argc, char *argv[]) {
     generator.detach();
 
     client.subscribe(ECHO_TOPIC, &e);
-	std::cout << "Before unsubscribe" << std::endl;
+	//std::cout << "Before unsubscribe" << std::endl;
     client.unsubscribe(ECHO_TOPIC);
-	std::cout << "After unsubscribe" << std::endl;
+	//std::cout << "After unsubscribe" << std::endl;
     client.subscribe(ECHO_TOPIC, &e);
     client.run();
 

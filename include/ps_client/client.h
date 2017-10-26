@@ -46,8 +46,7 @@ class Queue {
 	private:
     	std::queue<Message> data;
 		pthread_mutex_t lock;
-		pthread_cond_t fill;
-		pthread_cond_t empty;
+		pthread_cond_t cond;
 };
 
 void *thread_pub_func(void *);
@@ -64,27 +63,18 @@ class Client {
 		void run();
 		bool shutdown();
 
+		FILE *socket_dial(const char*, const char*);
+		const char* host;
+		const char* port;
 		const char* uid;
-		FILE* server_stream_pub;
-		FILE* server_stream_retr;
+		size_t nonce;
 		bool finished;
 		std::map<const char*, Callback*> callback_map;
 		Queue outgoing;
 		Queue incoming;
 		pthread_mutex_t lock;
 	private:
-		FILE *socket_dial(const char*, const char*);
-		const char* host;
-		const char* port;
-		size_t nonce;
 		Thread thread_pub;
 		Thread thread_retr;
 		Thread thread_call;
-};
-
-struct Thread_func_args {
-	Queue* queue;
-	const char* uid;
-	std::map<const char*, Callback*>* map;
-	FILE* stream;
 };
