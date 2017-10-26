@@ -5,6 +5,8 @@
 #include <time.h>
 #include <stdlib.h>
 #include <netdb.h>
+#include <iostream>
+#include <unistd.h>
 
 #include "../../include/ps_client/client.h"
 #include "../../include/ps_client/macros.h"
@@ -18,8 +20,10 @@ Client::Client(const char* host, const char* port, const char* cid) {
 	this->finished = false;
 
 	/* Connect to server */
-	server_stream = socket_dial(host, port);
-	if (server_stream == NULL) {
+	server_stream_pub = socket_dial(host, port);
+	server_stream_retr = socket_dial(host, port);
+
+	if (server_stream_pub == NULL || server_stream_retr == NULL) {
 		exit(1);
 	}
 
@@ -34,12 +38,12 @@ Client::Client(const char* host, const char* port, const char* cid) {
 FILE *Client::socket_dial(const char *host, const char *port) {
 	/* Lookup server address info */
 	struct addrinfo *results;
-	struct addrinfo hints;
+	struct addrinfo hints = {0};
 	hints.ai_family = AF_UNSPEC;
 	hints.ai_socktype = SOCK_STREAM;
 	int status;
 	if ((status = getaddrinfo(host, port, &hints, &results)) != 0) {
-		perror("getaddrinfo");
+		std::cerr << "getaddrinfo: " << gai_strerror(status) << std::endl;
 		return NULL;
 	}
 
@@ -48,15 +52,19 @@ FILE *Client::socket_dial(const char *host, const char *port) {
 	for (struct addrinfo *p = results; p != NULL && sockfd < 0; p = p->ai_next) {
 		/*Allocate socket */
 		if ((sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) < 0){
-			perror("socket");
+			//perror("socket");
 			continue;
 		}
 
 		/* Connect */
 		if (connect(sockfd, p->ai_addr, p->ai_addrlen) < 0) {
-			perror("connect");
+			//perror("connect");
+			close(sockfd);
+			sockfd = -1;
 			continue;
 		}
+		puts("connected");
+		break;
 	}
 
 	freeaddrinfo(results);
@@ -112,19 +120,20 @@ void Client::disconnect() {
 	m.sender = uid;
 	m.nonce = nonce;
 	outgoing.push(m);
-	pthread_mutex_lock(&lock);
-	finished = true;
-	pthread_mutex_unlock(&lock);
 }
 
 void Client::run() {
 	thread_pub.start(thread_pub_func, this);
 	thread_retr.start(thread_retr_func, this);
-	thread_call.start(thread_call_func, this);
 
 	thread_pub.detach();
 	thread_retr.detach();
-	thread_call.detach();
+
+	while (!shutdown()) {
+		std::cout << "Call thread beginning loop" << std::endl;
+		Message m = incoming.pop();
+		callback_map[m.type.c_str()]->run(m);
+	}	
 }
 
 bool Client::shutdown() {
@@ -138,11 +147,25 @@ void *thread_pub_func(void *args) {
 	Client* client = (Client*)args;
 
 	while (!client->shutdown()) {
+		std::cout << "Pub thread beginning loop" << std::endl;
 		Message m = (client->outgoing).pop();
-		fprintf(client->server_stream, "%s %s %lu\n", m.type.c_str(), m.topic.c_str(), m.length);
+		if (m.type == "IDENTIFY" || m.type == "DISCONNECT") {
+			fprintf(client->server_stream_pub, "%s %s %lu\n", m.type.c_str(), m.sender.c_str(), m.nonce);
+		}else if (m.type == "SUBSCRIBE" || m.type == "UNSUBSCRIBE") {
+			fprintf(client->server_stream_pub, "%s %s\n", m.type.c_str(), m.topic.c_str());
+		}else if (m.type == "PUBLISH") {
+			fprintf(client->server_stream_pub, "%s %s %lu\n", m.type.c_str(), m.topic.c_str(), m.length);
+		}else{
+			std::cerr << "Unrecognized message type" << std::endl;
+		}
 		char buffer[BUFSIZ];
-		fgets(buffer, BUFSIZ, client->server_stream);
+		fgets(buffer, BUFSIZ, client->server_stream_pub);
 		puts(buffer);
+		if (m.type == "DISCONNECT") {
+			pthread_mutex_lock(&(client->lock));
+			client->finished = true;
+			pthread_mutex_unlock(&(client->lock));
+		}
 	}
 	return NULL;
 }
@@ -151,31 +174,48 @@ void *thread_retr_func(void *args) {
 	Client* client = (Client*)args;
 
 	while (!client->shutdown()) {
-		fprintf(client->server_stream, "RETRIEVE %s\n", client->uid);
-		char buffer[BUFSIZ];
-		puts(buffer);
+		std::cout << "retr thread beginning loop" << std::endl;
+		fprintf(client->server_stream_retr, "RETRIEVE %s\n", client->uid);
 		char topic[BUFSIZ];
 		char sender[BUFSIZ];
 		long unsigned length;
-		fscanf(client->server_stream, "MESSAGE %s FROM %s LENGTH %lu", topic, sender, &length);
+
+		
+		char buffer[10];
+		fgets(buffer, 10, client->server_stream_retr);
+		puts(buffer);
+
+		/*
+		if ((fscanf(client->server_stream_retr, "MESSAGE %s FROM %s LENGTH %lu", topic, sender, &length)) < 3) {
+			std::cout << "No message retrived" << std::endl;
+			continue;
+		}
+		std::cout << "topic = " << topic << std::endl;
+		std::cout << "sender = " << sender << std::endl;
+		std::cout << "length = " << length << std::endl;
 		char body[length];
-		fgets(body, length, client->server_stream);
+		fgets(body, length, client->server_stream_retr);
+		std::cout << strlen(body) << std::endl;
 		Message m;
 		m.type = "MESSAGE";
 		m.topic = topic;
+		std::cout << m.topic << std::endl;
 		m.sender = sender;
 		m.length = length;
 		m.body = body;
 		(client->incoming).push(m);
+		*/
 	}
 	return NULL;
 }
-
+/*
 void *thread_call_func(void *args) {
 	Client* client = (Client*)args;
 	while (!client->shutdown()) {
 		Message m = (client->incoming).pop();
+		std::cerr << "Message body: " << m.body << std::endl;
 		(client->callback_map)[m.type.c_str()]->run(m);
 	}
 	return NULL;
 }
+*/

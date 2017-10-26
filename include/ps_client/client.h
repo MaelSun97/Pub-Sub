@@ -65,20 +65,21 @@ class Client {
 		bool shutdown();
 
 		const char* uid;
-		FILE* server_stream;
+		FILE* server_stream_pub;
+		FILE* server_stream_retr;
+		bool finished;
 		std::map<const char*, Callback*> callback_map;
 		Queue outgoing;
 		Queue incoming;
+		pthread_mutex_t lock;
 	private:
 		FILE *socket_dial(const char*, const char*);
 		const char* host;
 		const char* port;
 		size_t nonce;
-		bool finished;
 		Thread thread_pub;
 		Thread thread_retr;
 		Thread thread_call;
-		pthread_mutex_t lock;
 };
 
 struct Thread_func_args {

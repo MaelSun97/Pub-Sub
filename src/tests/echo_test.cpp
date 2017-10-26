@@ -1,11 +1,9 @@
-// echo_test.cpp ---------------------------------------------------------------
-
-// SYSTEM INCLUDES
 #include <cstdlib>
 #include <cstdio>
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
+#include <iostream>
 
 // C++ PROJECT INCLUDES
 #include <ps_client/client.h>
@@ -36,15 +34,17 @@ void *echo_generator(void *arg) {
 
 int main(int argc, char *argv[]) {
     if (argc != 4) {
-    	fprintf(stderr, "Usage %s: host port client_id\n", argv[0]);
-    	return EXIT_FAILURE;
+        fprintf(stderr, "Usage %s: host port client_id\n", argv[0]);
+        return EXIT_FAILURE;
     }
 
     const char *host      = argv[1];
     const char *port      = argv[2];
     const char *client_id = argv[3];
 
+	std::cout << "Before client instantiation" << std::endl;
     Client       client(host, port, client_id);
+	std::cout << "After client instantiation" << std::endl;
     Thread       generator;
     EchoCallback e;
 
@@ -52,9 +52,11 @@ int main(int argc, char *argv[]) {
     generator.detach();
 
     client.subscribe(ECHO_TOPIC, &e);
+	std::cout << "Before unsubscribe" << std::endl;
+    client.unsubscribe(ECHO_TOPIC);
+	std::cout << "After unsubscribe" << std::endl;
+    client.subscribe(ECHO_TOPIC, &e);
     client.run();
 
     return EXIT_SUCCESS;
 }
-
-// vim: set expandtab sts=4 sw=4 ts=8 ft=cpp: ----------------------------------
