@@ -22,6 +22,11 @@ ECHO_SOURCE     = $(wildcard src/tests/*.cpp)
 ECHO_OBJECTS    = $(ECHO_SOURCE:.cpp=.o)
 ECHO            = bin/echo_test
 
+APP_LNK_FLAGS = $(LNKFLAGS) -lps_client
+APP_SOURCE = chat.cpp
+APP_OBJECTS = $(APP_SOURCE: .cpp=.o)
+APP = bin/chat
+
 # These are macros for making unit tests.
 UNIT_FLAGS      = -I$(GTEST_INC_DIR)
 UNIT_LNK_FLAGS  = -L$(GTEST_LNK_PATH) $(GTEST_LNK_FLAGS) $(LNKFLAGS) -lps_client
@@ -30,7 +35,7 @@ UNIT_HEADERS    = $(wildcard src/unit/*.h)
 UNIT_OBJECTS    = $(UNIT_SOURCE:.cpp=.o)
 UNIT            = bin/client_unit
 
-TARGETS        	= $(CLIENT) $(ECHO) $(GTEST) $(UNIT)
+TARGETS        	= $(CLIENT) $(ECHO) $(GTEST) $(UNIT) $(APP)
 
 all:            $(TARGETS)
 
@@ -45,6 +50,9 @@ $(ECHO):        $(ECHO_OBJECTS) $(CLIENT)
 
 $(GTEST):	contrib/gtest
 	(mkdir build; cd build; cmake ../contrib/gtest; make)
+
+$(APP): $(APP_OBJECTS) $(CLIENT)
+	$(LD) -o $@ $(APP_OBJECTS) $(LDFLAGS) $(APP_LNK_FLAGS)
 
 src/client/%.o: src/client/%.cpp $(wildcard include/ps_client/*.h)
 	$(CXX) $(CXXFLAGS) -o $@ -c $<

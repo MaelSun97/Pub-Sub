@@ -86,6 +86,7 @@ void Client::subscribe(const char* topic, Callback *callback) {
 	m.topic = topic;
 	m.sender = uid;
 	m.nonce = nonce;
+	m.body = "SUB";
 	outgoing.push(m);
 	callback_map.insert(std::pair<string, Callback*>(m.topic, callback));
 }
@@ -96,6 +97,7 @@ void Client::unsubscribe(const char* topic) {
 	m.topic = topic;
 	m.sender = uid;
 	m.nonce = nonce;
+	m.body = "UNSUB";
 	outgoing.push(m);
 	callback_map.erase(m.topic);
 }
@@ -104,6 +106,7 @@ void Client::disconnect() {
 	Message m;
 	m.type = "DISCONNECT";
 	m.sender = uid;
+	m.body = "DISC";
 	m.nonce = nonce;
 	outgoing.push(m);
 }
@@ -119,7 +122,7 @@ void Client::run() {
 		//std::cout << "Call thread beginning loop" << std::endl;
 		Message m = incoming.pop();
 		//std::cout << "Checking map for entry >" << m.topic.c_str() << "<" << std::endl;
-		/*
+		
 		for (auto const& x : callback_map)
 		{
 			std::cout << x.first  // string (key)
@@ -133,7 +136,7 @@ void Client::run() {
 		} else {
 			std::cout << "Found" << std::endl;
 		}
-		*/
+		
 		callback_map[m.topic]->run(m);
 	}	
 }
@@ -166,6 +169,14 @@ void *thread_pub_func(void *args) {
 	while (!client->shutdown()) {
 		//std::cout << "Pub thread beginning loop" << std::endl;
 		Message m = (client->outgoing).pop();
+		
+		std::cout << "~type = " << m.type << std::endl;
+		std::cout << "~topic = " << m.topic << std::endl;
+		std::cout << "~sender = " << m.sender << std::endl;
+		std::cout << "~length = " << m.length << std::endl;
+		std::cout << "~bodylen = " << m.body.length() << std::endl;
+		std::cout << "~body = " << m.body << std::endl;
+		
 		if (m.type == "DISCONNECT") {
 			fprintf(server_stream_pub, "%s %s %lu\n", m.type.c_str(), m.sender.c_str(), m.nonce);
 		}else if (m.type == "SUBSCRIBE" || m.type == "UNSUBSCRIBE") {
@@ -218,7 +229,8 @@ void *thread_retr_func(void *args) {
 		char message[BUFSIZ];
 		fgets(message, BUFSIZ, server_stream_retr);
 		
-		if ((sscanf(message/*server_stream_retr*/, "MESSAGE %s FROM %s LENGTH %lu", topic, sender, &length)) < 3) {
+		std::cout << message << std::endl;
+		if ((sscanf(message/*server_stream_retr*/, "MESSAGE %s FROM %s LENGTH %lu\n", topic, sender, &length)) < 3) {
 			std::cout << "Unrecognized message retrived" << std::endl;
 			std::cout << message << std:: endl;
 			continue;
@@ -232,7 +244,7 @@ void *thread_retr_func(void *args) {
 
 		char body[length];
 		//fgets(body, length, server_stream_retr);
-		fscanf(server_stream_retr, buffer, body); //NEW
+		std::cout << fscanf(server_stream_retr, buffer, body) << std::endl; //NEW
 		if (strlen(body) != length) {
 			std::cout << "body: >" << int(body[0]) << "<" << std::endl;
 		}
