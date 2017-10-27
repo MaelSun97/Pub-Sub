@@ -135,10 +135,11 @@ void Client::run() {
 			std::cout << "Not found" << std::endl;
 		} else {
 			std::cout << "Found" << std::endl;
+			callback_map[m.topic]->run(m);
+
 		}
 		
-		callback_map[m.topic]->run(m);
-	}	
+		}	
 }
 
 bool Client::shutdown() {
@@ -227,10 +228,12 @@ void *thread_retr_func(void *args) {
 		long unsigned length;
 
 		char message[BUFSIZ];
-		fgets(message, BUFSIZ, server_stream_retr);
+		if (fgets(message, BUFSIZ, server_stream_retr) == NULL){
+			exit(0);
+		}
 		
-		std::cout << message << std::endl;
-		if ((sscanf(message/*server_stream_retr*/, "MESSAGE %s FROM %s LENGTH %lu\n", topic, sender, &length)) < 3) {
+		//std::cout << message << std::endl;
+		 if ((sscanf(message/*server_stream_retr*/, "MESSAGE %s FROM %s LENGTH %lu\n", topic, sender, &length)) < 3) {
 			std::cout << "Unrecognized message retrived" << std::endl;
 			std::cout << message << std:: endl;
 			continue;
@@ -238,7 +241,6 @@ void *thread_retr_func(void *args) {
 		std::cout << "topic = " << topic << std::endl;
 		std::cout << "sender = " << sender << std::endl;
 		std::cout << "length = " << length << std::endl;
-
 		char buffer[128]; //NEW
 		sprintf(buffer, "%%%luc", length); //NEW
 
