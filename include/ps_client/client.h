@@ -69,7 +69,7 @@ class Client {
 		const char* uid;
 		size_t nonce;
 		bool finished;
-		std::map<const char*, Callback*> callback_map;
+		std::map<string, Callback*> callback_map;
 		Queue outgoing;
 		Queue incoming;
 		pthread_mutex_t lock;

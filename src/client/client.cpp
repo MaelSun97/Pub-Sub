@@ -87,17 +87,7 @@ void Client::subscribe(const char* topic, Callback *callback) {
 	m.sender = uid;
 	m.nonce = nonce;
 	outgoing.push(m);
-	callback_map.insert(std::pair<const char*, Callback*>(topic, callback));
-	std::cout << "Entry added to map: " << topic << std::endl;
-
-	for (auto const& x : callback_map)
-	{
-		std::cout << x.first  // string (key)
-				  << ':' 
-				  << x.second // string's value 
-				  << std::endl ;
-	}
-
+	callback_map.insert(std::pair<string, Callback*>(m.topic, callback));
 }
 
 void Client::unsubscribe(const char* topic) {
@@ -107,15 +97,7 @@ void Client::unsubscribe(const char* topic) {
 	m.sender = uid;
 	m.nonce = nonce;
 	outgoing.push(m);
-	callback_map.erase(topic);
-	std::cout << "Entry removed from map: " << topic << std::endl;
-	for (auto const& x : callback_map)
-	{
-		std::cout << x.first  // string (key)
-				  << ':' 
-				  << x.second // string's value 
-				  << std::endl ;
-	}
+	callback_map.erase(m.topic);
 }
 
 void Client::disconnect() {
@@ -134,25 +116,25 @@ void Client::run() {
 	thread_retr.detach();
 
 	while (!shutdown()) {
-		std::cout << "Call thread beginning loop" << std::endl;
+		//std::cout << "Call thread beginning loop" << std::endl;
 		Message m = incoming.pop();
-		std::cout << "Checking map for entry >" << m.topic.c_str() << "<" << std::endl;
+		//std::cout << "Checking map for entry >" << m.topic.c_str() << "<" << std::endl;
+		/*
 		for (auto const& x : callback_map)
 		{
 			std::cout << x.first  // string (key)
 					  << ':' 
 					  << x.second // string's value 
 					  << std::endl ;
-			if (strcmp(m.topic.c_str(), x.first) == 0) {
-				std::cout << "Found" << std::endl;
-			}
 		}
-		if ( callback_map.find(m.topic.c_str()) == callback_map.end() ) {
+		
+		if ( callback_map.find(m.topic) == callback_map.end() ) {
 			std::cout << "Not found" << std::endl;
 		} else {
 			std::cout << "Found" << std::endl;
 		}
-		callback_map[m.topic.c_str()]->run(m);
+		*/
+		callback_map[m.topic]->run(m);
 	}	
 }
 
@@ -164,7 +146,7 @@ bool Client::shutdown() {
 }
 
 void *thread_pub_func(void *args) {
-	std::cout << "Pub thread started" << std::endl;
+	//std::cout << "Pub thread started" << std::endl;
 	Client* client = (Client*)args;
 
 	/* Connect to server */
@@ -172,17 +154,17 @@ void *thread_pub_func(void *args) {
 	if (server_stream_pub == NULL) {
 		exit(1);
 	}
-	std::cout << "Pub thread successfully connected to server" << std::endl;
+	//std::cout << "Pub thread successfully connected to server" << std::endl;
 
 	/* Identify */
 	fprintf(server_stream_pub, "IDENTIFY %s %lu\n", client->uid, client->nonce);
 	char buffer[BUFSIZ];
 	fgets(buffer, BUFSIZ, server_stream_pub);
 	puts(buffer);
-	std::cout << "Pub thread successfully identified" << std::endl;
+	//std::cout << "Pub thread successfully identified" << std::endl;
 
 	while (!client->shutdown()) {
-		std::cout << "Pub thread beginning loop" << std::endl;
+		//std::cout << "Pub thread beginning loop" << std::endl;
 		Message m = (client->outgoing).pop();
 		if (m.type == "DISCONNECT") {
 			fprintf(server_stream_pub, "%s %s %lu\n", m.type.c_str(), m.sender.c_str(), m.nonce);
@@ -207,7 +189,7 @@ void *thread_pub_func(void *args) {
 }
 
 void *thread_retr_func(void *args) {
-	std::cout << "Retr thread started" << std::endl;
+	//std::cout << "Retr thread started" << std::endl;
 	Client* client = (Client*)args;
 
 	/* Connect to server */
@@ -215,7 +197,7 @@ void *thread_retr_func(void *args) {
 	if (server_stream_retr == NULL) {
 		exit(1);
 	}
-	std::cout << "Retr thread successfully connected to server" << std::endl;
+	//std::cout << "Retr thread successfully connected to server" << std::endl;
 
 	/* Identify */
 	fprintf(server_stream_retr, "IDENTIFY %s %lu\n", client->uid, client->nonce);
@@ -223,11 +205,11 @@ void *thread_retr_func(void *args) {
 	fgets(buffer, BUFSIZ, server_stream_retr);
 	puts(buffer);
 
-	std::cout << "Retr thread successfully identified" << std::endl;
+	//std::cout << "Retr thread successfully identified" << std::endl;
 
 	/* Retrieve */
 	while (!client->shutdown()) {
-		std::cout << "retr thread beginning loop" << std::endl;
+		//std::cout << "retr thread beginning loop" << std::endl;
 		fprintf(server_stream_retr, "RETRIEVE %s\n", client->uid);
 		char topic[BUFSIZ];
 		char sender[BUFSIZ];
@@ -251,7 +233,9 @@ void *thread_retr_func(void *args) {
 		char body[length];
 		//fgets(body, length, server_stream_retr);
 		fscanf(server_stream_retr, buffer, body); //NEW
-		std::cout << strlen(body) << std::endl;
+		if (strlen(body) != length) {
+			std::cout << "body: >" << int(body[0]) << "<" << std::endl;
+		}
 		Message m;
 		m.type = "MESSAGE";
 		m.topic = topic;
@@ -261,17 +245,6 @@ void *thread_retr_func(void *args) {
 		m.body = body;
 		(client->incoming).push(m);
 	}
-	std::cout << "Retr thread returning" << std::endl;
+	//std::cout << "Retr thread returning" << std::endl;
 	return NULL;
 }
-/*
-void *thread_call_func(void *args) {
-	Client* client = (Client*)args;
-	while (!client->shutdown()) {
-		Message m = (client->incoming).pop();
-		std::cerr << "Message body: " << m.body << std::endl;
-		(client->callback_map)[m.type.c_str()]->run(m);
-	}
-	return NULL;
-}
-*/
