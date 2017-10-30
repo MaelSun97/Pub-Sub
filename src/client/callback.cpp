@@ -4,6 +4,5 @@
 
 
 void EchoCallback::run(Message &m){
-	std::cout << "Echo callback cout" << std::endl;
 	std::cout << m.body << std::endl;
 }

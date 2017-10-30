@@ -8,6 +8,7 @@ Members
 
 1. Alison Lui (alui@nd.edu)
 2. Ivy Wang (jwang28@nd.edu)
+3. Ruochen Sun (rsun2@nd.edu)
 
 Design
 ------
@@ -35,7 +36,7 @@ Through network sockets.
 Using threads.
 Using concurrent queues.
 Queues. Locks + condition variables
-When the user call disconnect on the client??????????????????????????????????????????????????
+When the user call disconnect on the client a flag will be set and the threads will check that flag using a function with locks.
 The subscribe method will associate topics with callbacks using a map.
 
 > 2. The client library needs to provide a `Callback` class.
@@ -54,16 +55,15 @@ They will write handlers by creating inherited classes of Callback.
 >   - What methods would be useful to have in processing `Messages`?
 
 message type, message topic, message sender, sender's nonce, message body
-??????????????????????????????????????????????????????????????
-
+We prefer not to have any
 > 4. The client library needs to provide a `Thread` class.
 >
 >   - What does the `Thread` class need to keep track of?
 >
 >   - What POSIX thread functions will need to utilize?
 
-??????????????????????????????????????????????????????????
-pthread_create, pthread_wait, pthread_join, pthread_kill?????????????????????????
+A single thread
+pthread\_create, pthread\_wait, pthread\_join
 
 > 5. You will need to perform testing on your client library.
 >
@@ -75,7 +75,7 @@ pthread_create, pthread_wait, pthread_join, pthread_kill????????????????????????
 >
 >   - How will you incorporate testing at every stage of development?
 
-Response
+Use google test to unit test the functions. Echo test will tell make sure the client constructor/publish/subscribe/unsubscribe/disconnect functions are working, that the queue is working, and that the publish/retrieve/callback threads are working and if it works consistently should help confirm that there are no race conditions. We will use google test to run functions and make assertions/expectations to make sure that individual functions/classes are working as intended. We will test functions and classes as they are completed incrementally.
 
 > 6. You will need to create an user application that takes advantage of the
 >    pub/sub system.
@@ -90,22 +90,22 @@ Response
 >
 >   - What additional threads will you need?
 
-Response.
+We plan on making a chat app that allows two users to run the program at the same time and communicate with each other through the server. Each user will have one instantiation of the client and will publish messages to a topic specific to that user. It will subscribe to the topic of the other user. The callback will just be echocallback because we just want to dump the message to the screen. We will need a thread that receives that messages and one that constantly waits for input from the user and sends any messages that the user types.
 
 Demonstration
 -------------
 
-> Place a link to your demonstration slides on [Google Drive].
+> <https://docs.google.com/a/nd.edu/presentation/d/1ioWgWBQU5V-ueQI8lhIlPnUwuuXSFaBYEiVGzKDyoN4/edit?usp=sharing>
 
 Errata
 ------
 
-> Describe any known errors, bugs, or deviations from the requirements.
+> This meets all the requirements to the best of our knowledge.
 
 Extra Credit
 ------------
 
-> Describe what extra credit (if any) that you implemented.
+> We implemented the scripting interface extra credit. 
 
 [Project 03]:       https://www3.nd.edu/~pbui/teaching/cse.30341.fa17/project03.html
 [CSE.30341.FA17]:   https://www3.nd.edu/~pbui/teaching/cse.30341.fa17/

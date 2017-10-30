@@ -11,12 +11,11 @@ using std::endl;
 string my_uid_topic;
 
 void usage(int status) {
-	cout << "Usage:   chat.cpp [MY_USER_ID] [OTHER_USER_ID] [HOST] [PORT]" << endl;
+	cout << "Usage:   chat [MY_USER_ID] [OTHER_USER_ID] [HOST] [PORT]" << endl;
 	exit(status);
 }
 
 void *chat_generator(void *arg) {
-	cout << "Hello" << endl;
 	Client *client = (Client *)arg;
 	string message;
 	while (getline(cin, message)) {
@@ -39,9 +38,11 @@ int main(int argc, char* argv[]) {
 	const char* port = argv[4];
 	char other_uid_topic[BUFSIZ];
 	sprintf(other_uid_topic, "%s-topic", other_uid);
-	cout << "Look what you made me do" << endl;
 
 	Client c(host, port, my_uid.c_str());
+
+	cout << "Welcome to our completely unnecessary chatting service! ";
+	cout << "Type a message and press enter to send." << endl;
 
 	Thread generator;
 	EchoCallback e;
@@ -52,8 +53,6 @@ int main(int argc, char* argv[]) {
 	c.subscribe(other_uid_topic, &e);
 	c.run();
 
-	cout << "Goodbye" << endl;
-	
 	return EXIT_SUCCESS;
 }
 

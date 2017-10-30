@@ -119,27 +119,16 @@ void Client::run() {
 	thread_retr.detach();
 
 	while (!shutdown()) {
-		//std::cout << "Call thread beginning loop" << std::endl;
 		Message m = incoming.pop();
-		//std::cout << "Checking map for entry >" << m.topic.c_str() << "<" << std::endl;
-		
-		for (auto const& x : callback_map)
-		{
-			std::cout << x.first  // string (key)
-					  << ':' 
-					  << x.second // string's value 
-					  << std::endl ;
-		}
 		
 		if ( callback_map.find(m.topic) == callback_map.end() ) {
-			std::cout << "Not found: " << m.topic << std::endl;
+			std::cout << "Key not found: " << m.topic << std::endl;
 		} else {
-			std::cout << "Found" << std::endl;
 			callback_map[m.topic]->run(m);
 
 		}
 		
-		}	
+	}	
 }
 
 bool Client::shutdown() {
@@ -150,7 +139,6 @@ bool Client::shutdown() {
 }
 
 void *thread_pub_func(void *args) {
-	//std::cout << "Pub thread started" << std::endl;
 	Client* client = (Client*)args;
 
 	/* Connect to server */
@@ -158,17 +146,14 @@ void *thread_pub_func(void *args) {
 	if (server_stream_pub == NULL) {
 		exit(1);
 	}
-	//std::cout << "Pub thread successfully connected to server" << std::endl;
 
 	/* Identify */
 	fprintf(server_stream_pub, "IDENTIFY %s %lu\n", client->uid, client->nonce);
 	char buffer[BUFSIZ];
 	fgets(buffer, BUFSIZ, server_stream_pub);
-	puts(buffer);
-	//std::cout << "Pub thread successfully identified" << std::endl;
+	//puts(buffer); *****uncomment for logging messages*****
 
 	while (!client->shutdown()) {
-		//std::cout << "Pub thread beginning loop" << std::endl;
 		Message m = (client->outgoing).pop();
 		
 			
@@ -184,7 +169,7 @@ void *thread_pub_func(void *args) {
 		}
 		char buffer[BUFSIZ];
 		fgets(buffer, BUFSIZ, server_stream_pub);
-		puts(buffer);
+		//puts(buffer); *****uncomment for logging messages*****
 		if (m.type == "DISCONNECT") {
 			pthread_mutex_lock(&(client->lock));
 			client->finished = true;
@@ -195,7 +180,6 @@ void *thread_pub_func(void *args) {
 }
 
 void *thread_retr_func(void *args) {
-	//std::cout << "Retr thread started" << std::endl;
 	Client* client = (Client*)args;
 
 	/* Connect to server */
@@ -203,19 +187,16 @@ void *thread_retr_func(void *args) {
 	if (server_stream_retr == NULL) {
 		exit(1);
 	}
-	//std::cout << "Retr thread successfully connected to server" << std::endl;
 
 	/* Identify */
 	fprintf(server_stream_retr, "IDENTIFY %s %lu\n", client->uid, client->nonce);
 	char buffer[BUFSIZ];
 	fgets(buffer, BUFSIZ, server_stream_retr);
-	puts(buffer);
+	//puts(buffer); *****uncomment for logging messages*****
 
-	//std::cout << "Retr thread successfully identified" << std::endl;
 
 	/* Retrieve */
 	while (!client->shutdown()) {
-		//std::cout << "retr thread beginning loop" << std::endl;
 		fprintf(server_stream_retr, "RETRIEVE %s\n", client->uid);
 		char topic[BUFSIZ];
 		char sender[BUFSIZ];
@@ -226,33 +207,34 @@ void *thread_retr_func(void *args) {
 			exit(0);
 		}
 		
-		//std::cout << message << std::endl;
-		 if ((sscanf(message/*server_stream_retr*/, "MESSAGE %s FROM %s LENGTH %lu\n", topic, sender, &length)) < 3) {
+		 if ((sscanf(message, "MESSAGE %s FROM %s LENGTH %lu\n", topic, sender, &length)) < 3) {
 			std::cout << "Unrecognized message retrived" << std::endl;
 			std::cout << message << std:: endl;
 			continue;
 		}
+		/*
 		std::cout << "topic = " << topic << std::endl;
 		std::cout << "sender = " << sender << std::endl;
 		std::cout << "length = " << length << std::endl;
-		char buffer[128]; //NEW
-		sprintf(buffer, "%%%luc", length); //NEW
+		*/
+		char buffer[128] = "";
+		sprintf(buffer, "%%%luc", length);
 
 		char body[length+1];
-		//fgets(body, length, server_stream_retr);
-		std::cout << fscanf(server_stream_retr, buffer, body) << std::endl; //NEW
+		memset(body, 0, length+1);
+		fscanf(server_stream_retr, buffer, body);
+		/*
 		if (strlen(body) != length) {
 			std::cout << "body: >" << int(body[0]) << "<" << std::endl;
 		}
+		*/
 		Message m;
 		m.type = "MESSAGE";
 		m.topic = topic;
-		//std::cout << m.topic << std::endl;
 		m.sender = sender;
 		m.length = length;
 		m.body = body;
 		(client->incoming).push(m);
 	}
-	//std::cout << "Retr thread returning" << std::endl;
 	return NULL;
 }

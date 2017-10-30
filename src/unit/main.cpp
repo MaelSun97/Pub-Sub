@@ -13,9 +13,8 @@ namespace {
 			}
 	};
 
-	
 	// Tests the Client methods which push to outgoing
-	TEST_F(ClientTest, ClientMessages) {
+	TEST_F(ClientTest, ClientPublish) {
 		const char* host = "localhost";
 		const char* port = "9411";	
 		const char*	cid = "pbui";
@@ -23,7 +22,6 @@ namespace {
 		string topic = "topic";
 		string message = "message";
 		size_t length = 7;
-		EchoCallback e;
 		
 		c.publish(topic.c_str(), message.c_str(), length);
 		Message m1 = c.outgoing.pop();
@@ -31,41 +29,57 @@ namespace {
 		EXPECT_EQ(m1.body, message);
 		EXPECT_EQ(m1.length, length);
 		EXPECT_EQ(m1.type, "PUBLISH");
+	}
 	
+	TEST_F(ClientTest, ClientSubscribe) {
+		const char* host = "localhost";
+		const char* port = "9411";	
+		const char*	cid = "pbui";
+		Client c(host, port, cid);
+		string topic = "topic";
+		EchoCallback e;
+
 		c.subscribe(topic.c_str(), &e);
-		m1 = c.outgoing.pop();
+		Message m1 = c.outgoing.pop();
 		EXPECT_EQ(m1.topic, topic);
 		EXPECT_NE(c.callback_map.find(topic), c.callback_map.end());
 		EXPECT_EQ(c.callback_map[topic], &e);
 		EXPECT_EQ(m1.type, "SUBSCRIBE");
-	
+	}
+
+	TEST_F(ClientTest, ClientUnsubscribe) {
+		const char* host = "localhost";
+		const char* port = "9411";	
+		const char*	cid = "pbui";
+		Client c(host, port, cid);
+		string topic = "topic";
+
 		c.unsubscribe(topic.c_str());
-		m1 = c.outgoing.pop();
+		Message m1 = c.outgoing.pop();
 		EXPECT_EQ(m1.topic, topic);
 		EXPECT_EQ(m1.type, "UNSUBSCRIBE");
 		EXPECT_EQ(c.callback_map.find(topic), c.callback_map.end());
-	
+	}
+
+	TEST_F(ClientTest, ClientDisconnect) {
+		const char* host = "localhost";
+		const char* port = "9411";	
+		const char*	cid = "pbui";
+		Client c(host, port, cid);
+
 		c.disconnect();	
-		m1 = c.outgoing.pop();
+		Message m1 = c.outgoing.pop();
 		EXPECT_EQ(m1.type, "DISCONNECT");
 		EXPECT_EQ(m1.sender, "pbui");
-
 	}
 
 
-	
-
-	// Tests that Foo does Xyz.
-	//TEST_F(FooTest, DoesXyz) {
-		// Exercises the Xyz feature of Foo.
-	//}
 	class QueueTest:  public ::testing::Test {
 		protected:
 			QueueTest(){
 			}
 
 	};
-	
 
 	TEST_F(QueueTest, QueuePushPop) {
 		Queue q;
@@ -79,11 +93,12 @@ namespace {
 		EXPECT_EQ(m.body, m1.body);
 		EXPECT_EQ(m.length, m1.length);
 	}
+
+
 	class EchoCallbackTest: public ::testing::Test {
 		protected: 
-			EchoCallbackTest(){			
-			}
-		};
+			EchoCallbackTest(){}
+	};
 
 	TEST_F(EchoCallbackTest, CallbackRun){
 		Message m;
@@ -92,17 +107,23 @@ namespace {
 		e.run(m);	
 	}
 	
-	class ThreadTest: public ::testing:Test{
+
+	class ThreadTest: public ::testing::Test{
 		protected:
 			ThreadTest(){}
-		public:
-			void* func(void *arg){int n = 3; return (void*) &n;}
-		};
+	};
+
+	void* func(void *arg){return arg;}
+
 	TEST_F(ThreadTest, thread){
 		Thread t;
-	//	t.start(func, NULL);
-		
-		}
+		int s = 3;
+		t.start(func, &s);
+		int n;
+		int *q = &n;
+		t.join((void**)&q);
+		EXPECT_EQ(3, *q);
+	}
 
 }  // namespace
 
@@ -111,5 +132,3 @@ int main(int argc, char* argv[]) {
 	::testing::InitGoogleTest(&argc, argv);
 	return RUN_ALL_TESTS();
 }
-
-
