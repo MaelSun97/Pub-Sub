@@ -132,7 +132,7 @@ void Client::run() {
 		}
 		
 		if ( callback_map.find(m.topic) == callback_map.end() ) {
-			std::cout << "Not found" << std::endl;
+			std::cout << "Not found: " << m.topic << std::endl;
 		} else {
 			std::cout << "Found" << std::endl;
 			callback_map[m.topic]->run(m);
@@ -171,13 +171,7 @@ void *thread_pub_func(void *args) {
 		//std::cout << "Pub thread beginning loop" << std::endl;
 		Message m = (client->outgoing).pop();
 		
-		std::cout << "~type = " << m.type << std::endl;
-		std::cout << "~topic = " << m.topic << std::endl;
-		std::cout << "~sender = " << m.sender << std::endl;
-		std::cout << "~length = " << m.length << std::endl;
-		std::cout << "~bodylen = " << m.body.length() << std::endl;
-		std::cout << "~body = " << m.body << std::endl;
-		
+			
 		if (m.type == "DISCONNECT") {
 			fprintf(server_stream_pub, "%s %s %lu\n", m.type.c_str(), m.sender.c_str(), m.nonce);
 		}else if (m.type == "SUBSCRIBE" || m.type == "UNSUBSCRIBE") {
@@ -244,7 +238,7 @@ void *thread_retr_func(void *args) {
 		char buffer[128]; //NEW
 		sprintf(buffer, "%%%luc", length); //NEW
 
-		char body[length];
+		char body[length+1];
 		//fgets(body, length, server_stream_retr);
 		std::cout << fscanf(server_stream_retr, buffer, body) << std::endl; //NEW
 		if (strlen(body) != length) {
