@@ -100,12 +100,12 @@ Demonstration
 Errata
 ------
 
-> This meets all the requirements to the best of our knowledge.
+> This meets all the requirements to the best of our knowledge. (2 valgrind errors were okay'd by Professor Bui) 
 
 Extra Credit
 ------------
 
-> We implemented the scripting interface extra credit. 
+> No extra credit was attempted.
 
 [Project 03]:       https://www3.nd.edu/~pbui/teaching/cse.30341.fa17/project03.html
 [CSE.30341.FA17]:   https://www3.nd.edu/~pbui/teaching/cse.30341.fa17/
